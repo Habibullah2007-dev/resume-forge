@@ -89,7 +89,23 @@ export const Layout: React.FC = () => {
 
               {/* Auth Controls */}
               {session ? (
-                <div className="flex items-center space-x-3 text-xs">
+                <div className="flex items-center space-x-4 text-xs">
+                  {location.pathname !== '/history' ? (
+                    <button
+                      onClick={() => navigate('/history')}
+                      className="text-xs font-semibold text-brand hover:text-brand-light underline underline-offset-4 cursor-pointer"
+                    >
+                      History
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => navigate('/upload')}
+                      className="text-xs font-semibold text-brand hover:text-brand-light underline underline-offset-4 cursor-pointer"
+                    >
+                      New Tailoring
+                    </button>
+                  )}
+                  <span className="text-gray-200">|</span>
                   <div className="hidden sm:flex flex-col items-end">
                     <span className="font-semibold text-black truncate max-w-[120px]">{user?.email}</span>
                   </div>

@@ -5,6 +5,7 @@ import { Analyze } from './pages/Analyze';
 import { Review } from './pages/Review';
 import { Export } from './pages/Export';
 import { Login } from './pages/Login';
+import { History } from './pages/History';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
@@ -22,6 +23,7 @@ function App() {
             <Route path="analyze" element={<ProtectedRoute><Analyze /></ProtectedRoute>} />
             <Route path="review" element={<ProtectedRoute><Review /></ProtectedRoute>} />
             <Route path="export" element={<ProtectedRoute><Export /></ProtectedRoute>} />
+            <Route path="history" element={<ProtectedRoute><History /></ProtectedRoute>} />
 
             {/* Re-route index to upload */}
             <Route index element={<Navigate to="/upload" replace />} />

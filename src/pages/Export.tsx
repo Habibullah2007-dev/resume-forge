@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useOutletContext, Navigate } from 'react-router-dom';
 import type { AppContextType } from '../types';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { pdf } from '@react-pdf/renderer';
 import { ResumePdfDocument } from '../components/ResumePdfDocument';
@@ -19,6 +20,8 @@ export const Export: React.FC = () => {
     tailoredSummary,
     tailoredSkills,
     tailoredExperience,
+    jobDescriptionText,
+    analysisResult,
   } = useOutletContext<AppContextType>();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -714,6 +717,45 @@ Respond with ONLY the JSON object. Do not include any explanation, safety notes,
       runAtsCheck();
     }
   }, [tailoredSummary, tailoredSkills, tailoredExperience]);
+
+  const [savedId, setSavedId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const saveToDb = async () => {
+      if (!session || !resumeText || savedId || isSaving) return;
+      setIsSaving(true);
+      try {
+        const { data, error } = await supabase
+          .from('analyzed_resumes')
+          .insert({
+            resume_name: headerInfo.name ? `${headerInfo.name}'s Resume` : 'Untitled Resume',
+            job_description: jobDescriptionText || '',
+            resume_text: resumeText,
+            analysis_result: analysisResult,
+            tailored_summary: tailoredSummary,
+            tailored_skills: tailoredSkills,
+            tailored_experience: tailoredExperience,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setSavedId(data.id);
+          console.info('Automatically saved resume tailoring to database history.', data.id);
+        }
+      } catch (err) {
+        console.error('Failed to save resume tailoring to database history:', err);
+      } finally {
+        setIsSaving(false);
+      }
+    };
+
+    if (tailoredSummary && tailoredSkills && tailoredExperience && analysisResult) {
+      saveToDb();
+    }
+  }, [session, resumeText, tailoredSummary, tailoredSkills, tailoredExperience, analysisResult, jobDescriptionText, savedId, isSaving]);
 
   // Protect route
   if (!tailoredSummary && !tailoredSkills && !tailoredExperience) {
