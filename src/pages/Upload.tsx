@@ -200,23 +200,6 @@ export const Upload: React.FC = () => {
     setSupportingFiles(newFiles);
   };
 
-  const handleLoadTestData = () => {
-    const dummyResume = new File(
-      ["Senior React Developer with 5 years experience. Skills: React, TypeScript, Tailwind CSS, Vite, Jest, Node.js."],
-      "test_resume.pdf",
-      { type: "application/pdf" }
-    );
-    const dummyCert = new File(
-      ["AWS Certified Solutions Architect. Passed June 2026."],
-      "test_cert.docx",
-      { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }
-    );
-    
-    setResumeFile(dummyResume);
-    setJobDescriptionText("We are looking for a Senior Frontend Engineer who has expert knowledge of React, TypeScript, and Tailwind CSS. Experience with build tools like Vite and bundler configurations is required.");
-    setSupportingFiles([dummyCert]);
-  };
-
   const isFormValid = resumeFile !== null && jobDescriptionText.trim() !== '';
 
   if (isExtracting) {
@@ -379,14 +362,7 @@ export const Upload: React.FC = () => {
       </div>
 
       {/* Action Footer */}
-      <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row gap-4 sm:gap-0 justify-between items-center text-center sm:text-left">
-        <button
-          onClick={handleLoadTestData}
-          type="button"
-          className="text-xs font-medium text-gray-400 hover:text-brand underline underline-offset-4 transition-colors duration-200 cursor-pointer"
-        >
-          Load Demo Data
-        </button>
+      <div className="border-t border-gray-100 pt-6 flex justify-end items-center">
         <button
           onClick={handleAnalyzeClick}
           disabled={!isFormValid}

@@ -85,6 +85,8 @@ export const Export: React.FC = () => {
     startDateYear?: number;
     endDateYear?: number;
     bullets?: string[];
+    title?: string;
+    subtitle?: string;
   }
 
   const parseStructuredEducation = (text: string): StructuredEducationItem[] => {
