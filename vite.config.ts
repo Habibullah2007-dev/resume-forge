@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import { createClient } from '@supabase/supabase-js';
 // @ts-ignore
 import { aiProviderManager } from './api/providerManager.js';
 
@@ -76,6 +77,28 @@ export default defineConfig(({ mode }) => {
               
               req.on('end', async () => {
                 try {
+                  const supabaseUrl = env.VITE_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+                  const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
+                  if (supabaseUrl && supabaseAnonKey) {
+                    const authHeader = req.headers.authorization;
+                    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+                      res.writeHead(401, { 'Content-Type': 'application/json' });
+                      res.end(JSON.stringify({ error: 'Missing or invalid authorization header' }));
+                      return;
+                    }
+                    const token = authHeader.split(' ')[1];
+                    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+                    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
+                    if (authError || !user) {
+                      res.writeHead(401, { 'Content-Type': 'application/json' });
+                      res.end(JSON.stringify({ error: 'Unauthorized: Invalid token' }));
+                      return;
+                    }
+                  } else {
+                    console.warn('[Local API Dev Middleware] Supabase environment variables are missing. Bypassing JWT auth check.');
+                  }
+
                   const { prompt } = JSON.parse(body);
                   if (!prompt) {
                     res.writeHead(400, { 'Content-Type': 'application/json' });

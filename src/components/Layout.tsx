@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import type { AppContextType, AnalysisResult } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Layout: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -17,6 +18,8 @@ export const Layout: React.FC = () => {
   const [tailoredSummary, setTailoredSummary] = useState<string>('');
   const [tailoredSkills, setTailoredSkills] = useState<string>('');
   const [tailoredExperience, setTailoredExperience] = useState<string>('');
+
+  const { session, user, signOut } = useAuth();
 
   const currentPath = location.pathname;
   let currentStep = 1;
@@ -64,18 +67,55 @@ export const Layout: React.FC = () => {
       <header className="border-b border-gray-100 py-6 px-6">
         <div className="max-w-[700px] mx-auto w-full">
           <div className="flex justify-between items-center">
-            <span className="text-xl font-bold tracking-tight text-brand">
+            <span 
+              onClick={() => navigate('/')} 
+              className="text-xl font-bold tracking-tight text-brand cursor-pointer"
+            >
               ResumeForge
             </span>
-            {/* Step Indicators */}
-            <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[10px] sm:text-xs font-semibold text-gray-400">
-              <span className={currentStep >= 1 ? "text-brand" : ""}>Upload</span>
-              <span className="hidden sm:inline">&middot;</span>
-              <span className={currentStep >= 2 ? "text-brand" : ""}>Analyze</span>
-              <span className="hidden sm:inline">&middot;</span>
-              <span className={currentStep >= 3 ? "text-brand" : ""}>Review</span>
-              <span className="hidden sm:inline">&middot;</span>
-              <span className={currentStep >= 4 ? "text-brand" : ""}>Export</span>
+            <div className="flex items-center space-x-6">
+              {/* Step Indicators */}
+              {location.pathname !== '/login' && (
+                <div className="flex flex-wrap items-center justify-end gap-x-2 gap-y-1 text-[10px] sm:text-xs font-semibold text-gray-400">
+                  <span className={currentStep >= 1 ? "text-brand" : ""}>Upload</span>
+                  <span className="hidden sm:inline">&middot;</span>
+                  <span className={currentStep >= 2 ? "text-brand" : ""}>Analyze</span>
+                  <span className="hidden sm:inline">&middot;</span>
+                  <span className={currentStep >= 3 ? "text-brand" : ""}>Review</span>
+                  <span className="hidden sm:inline">&middot;</span>
+                  <span className={currentStep >= 4 ? "text-brand" : ""}>Export</span>
+                </div>
+              )}
+
+              {/* Auth Controls */}
+              {session ? (
+                <div className="flex items-center space-x-3 text-xs">
+                  <div className="hidden sm:flex flex-col items-end">
+                    <span className="font-semibold text-black truncate max-w-[120px]">{user?.email}</span>
+                  </div>
+                  <div className="w-7 h-7 bg-brand/10 text-brand rounded-full flex items-center justify-center font-bold text-xs select-none">
+                    {user?.email?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <button
+                    onClick={async () => {
+                      await signOut();
+                      navigate('/login');
+                    }}
+                    className="text-xs font-semibold text-gray-400 hover:text-brand underline underline-offset-4 cursor-pointer"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                location.pathname !== '/login' && (
+                  <button
+                    onClick={() => navigate('/login')}
+                    className="text-xs font-semibold text-brand hover:text-brand-light underline underline-offset-4 cursor-pointer"
+                  >
+                    Log In
+                  </button>
+                )
+              )}
             </div>
           </div>
         </div>
@@ -83,7 +123,7 @@ export const Layout: React.FC = () => {
         <div className="max-w-[700px] mx-auto w-full mt-4 bg-gray-100 h-1 rounded-full overflow-hidden">
           <div 
             className="bg-brand h-full transition-all duration-300 ease-out" 
-            style={{ width: `${currentStep * 25}%` }}
+            style={{ width: `${location.pathname === '/login' ? 0 : currentStep * 25}%` }}
           />
         </div>
       </header>

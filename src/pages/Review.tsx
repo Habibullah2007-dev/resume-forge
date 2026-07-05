@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext, Navigate } from 'react-router-dom';
 import type { AppContextType } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Review: React.FC = () => {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const {
     resumeText,
     analysisResult,
@@ -86,6 +88,7 @@ Ensure your response contains ONLY the JSON payload. Do NOT wrap it in markdown 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
         },
         body: JSON.stringify({ prompt }),
       });

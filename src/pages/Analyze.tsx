@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext, Navigate } from 'react-router-dom';
 import type { AppContextType } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 export const Analyze: React.FC = () => {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const {
     resumeText,
     jobDescriptionText,
@@ -71,6 +73,7 @@ Respond with ONLY the JSON object. Do not include any explanation, safety notes,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
         },
         body: JSON.stringify({ prompt }),
       });

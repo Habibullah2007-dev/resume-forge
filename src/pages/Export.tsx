@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useOutletContext, Navigate } from 'react-router-dom';
 import type { AppContextType } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import { pdf } from '@react-pdf/renderer';
 import { ResumePdfDocument } from '../components/ResumePdfDocument';
@@ -12,6 +13,7 @@ interface AtsCheckResult {
 
 export const Export: React.FC = () => {
   const navigate = useNavigate();
+  const { session } = useAuth();
   const {
     resumeText,
     tailoredSummary,
@@ -654,6 +656,7 @@ Respond with ONLY the JSON object. Do not include any explanation, safety notes,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
         },
         body: JSON.stringify({ prompt }),
       });
