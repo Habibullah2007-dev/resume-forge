@@ -23,4 +23,13 @@ export interface AppContextType {
   setTailoredSkills: (text: string) => void;
   tailoredExperience: string;
   setTailoredExperience: (text: string) => void;
+  tailoredEducation: string;
+  setTailoredEducation: (text: string) => void;
+  tailoredCertifications: string;
+  setTailoredCertifications: (text: string) => void;
+  tailoredAwards: string;
+  setTailoredAwards: (text: string) => void;
+  supportingDocAdds: string[];
+  setSupportingDocAdds: (adds: string[]) => void;
+  resetFlow: () => void;
 }

@@ -18,6 +18,10 @@ export const Layout: React.FC = () => {
   const [tailoredSummary, setTailoredSummary] = useState<string>('');
   const [tailoredSkills, setTailoredSkills] = useState<string>('');
   const [tailoredExperience, setTailoredExperience] = useState<string>('');
+  const [tailoredEducation, setTailoredEducation] = useState<string>('');
+  const [tailoredCertifications, setTailoredCertifications] = useState<string>('');
+  const [tailoredAwards, setTailoredAwards] = useState<string>('');
+  const [supportingDocAdds, setSupportingDocAdds] = useState<string[]>([]);
 
   const { session, user, signOut } = useAuth();
 
@@ -37,6 +41,10 @@ export const Layout: React.FC = () => {
     setTailoredSummary('');
     setTailoredSkills('');
     setTailoredExperience('');
+    setTailoredEducation('');
+    setTailoredCertifications('');
+    setTailoredAwards('');
+    setSupportingDocAdds([]);
     navigate('/upload');
   };
 
@@ -59,6 +67,15 @@ export const Layout: React.FC = () => {
     setTailoredSkills,
     tailoredExperience,
     setTailoredExperience,
+    tailoredEducation,
+    setTailoredEducation,
+    tailoredCertifications,
+    setTailoredCertifications,
+    tailoredAwards,
+    setTailoredAwards,
+    supportingDocAdds,
+    setSupportingDocAdds,
+    resetFlow,
   };
 
   return (

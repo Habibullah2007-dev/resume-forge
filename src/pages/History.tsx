@@ -15,6 +15,10 @@ export const History: React.FC = () => {
     setTailoredSummary,
     setTailoredSkills,
     setTailoredExperience,
+    setTailoredEducation,
+    setTailoredCertifications,
+    setTailoredAwards,
+    setSupportingDocAdds,
   } = useOutletContext<AppContextType>();
 
   const [resumes, setResumes] = useState<any[]>([]);
@@ -46,18 +50,32 @@ export const History: React.FC = () => {
   }, [session]);
 
   const handleLoadResume = (item: any) => {
+    let tailoredObj = { summary: '', skills: '', experience: '', education: '', certifications: '', awards: '', supporting_doc_adds: [] };
+    try {
+      if (item.tailored_resume_text) {
+        tailoredObj = JSON.parse(item.tailored_resume_text);
+      }
+    } catch (e) {
+      console.error("Failed to parse tailored_resume_text:", e);
+      tailoredObj.experience = item.tailored_resume_text || '';
+    }
+
     // Populate app state context
     // We set a mock File object to pass Upload page form validation
     setResumeFile(new File([], 'Loaded_Resume.pdf'));
-    setResumeText(item.resume_text);
-    setJobDescriptionText(item.job_description);
-    setAnalysisResult(item.analysis_result);
-    setTailoredSummary(item.tailored_summary || '');
-    setTailoredSkills(item.tailored_skills || '');
-    setTailoredExperience(item.tailored_experience || '');
+    setResumeText(item.original_resume_text || '');
+    setJobDescriptionText(item.job_description_text || '');
+    setAnalysisResult(item.gap_analysis || null);
+    setTailoredSummary(tailoredObj.summary || '');
+    setTailoredSkills(tailoredObj.skills || '');
+    setTailoredExperience(tailoredObj.experience || '');
+    setTailoredEducation(tailoredObj.education || '');
+    setTailoredCertifications(tailoredObj.certifications || '');
+    setTailoredAwards(tailoredObj.awards || '');
+    setSupportingDocAdds(tailoredObj.supporting_doc_adds || []);
 
-    // Navigate straight to the final export page where they can review & download
-    navigate('/export');
+    // Navigate back to the review screen for edits
+    navigate('/review');
   };
 
   const handleDeleteResume = async (id: string, e: React.MouseEvent) => {
@@ -130,32 +148,23 @@ export const History: React.FC = () => {
       ) : (
         <div className="grid gap-6">
           {resumes.map((item) => {
-            const keywords = item.analysis_result?.missing_keywords || [];
+            const keywords = item.gap_analysis?.missing_keywords || [];
             return (
               <div
                 key={item.id}
-                onClick={() => handleLoadResume(item)}
-                className="border border-gray-200 hover:border-brand rounded-xl p-6 bg-white cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between space-y-4 group"
+                className="border border-gray-200 hover:border-brand/40 rounded-xl p-6 bg-white transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between space-y-4 group text-left"
               >
                 <div className="space-y-2">
-                  <div className="flex justify-between items-start">
-                    <h3 className="text-lg font-bold text-black group-hover:text-brand transition-colors duration-200">
-                      {item.resume_name}
-                    </h3>
-                    <button
-                      onClick={(e) => handleDeleteResume(item.id, e)}
-                      className="text-xs font-semibold text-gray-400 hover:text-red-600 px-2 py-1 border border-gray-200 hover:border-red-200 rounded bg-white transition-colors duration-200"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  <h3 className="text-lg font-bold text-black group-hover:text-brand transition-colors duration-200">
+                    {item.job_title || 'Untitled'}
+                  </h3>
                   
                   <p className="text-xs text-gray-400">
                     Tailored on {formatDate(item.created_at)}
                   </p>
 
                   <p className="text-sm text-gray-600 line-clamp-2 italic">
-                    &ldquo;{item.job_description}&rdquo;
+                    &ldquo;{item.job_description_text}&rdquo;
                   </p>
                 </div>
 
@@ -181,6 +190,21 @@ export const History: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                <div className="flex space-x-3 pt-4 border-t border-gray-50">
+                  <button
+                    onClick={() => handleLoadResume(item)}
+                    className="bg-brand text-white text-xs font-semibold px-4 py-2 rounded hover:bg-brand-light transition-colors duration-200 cursor-pointer"
+                  >
+                    Reload & Edit
+                  </button>
+                  <button
+                    onClick={(e) => handleDeleteResume(item.id, e)}
+                    className="border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-200 text-xs font-semibold px-4 py-2 rounded bg-white transition-colors duration-200 cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             );
           })}

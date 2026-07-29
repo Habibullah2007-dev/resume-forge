@@ -44,6 +44,8 @@ export const Analyze: React.FC = () => {
 You are an expert resume analyzer and ATS optimization tool.
 Analyze the following resume and job description. Identify keywords and skills that are missing in the resume compared to the job description, and point out any weak sections in the resume (with actionable descriptions of why they are weak).
 
+You will also receive SUPPORTING_DOCUMENTS_TEXT containing additional documents the candidate has uploaded (certificates, transcripts, award letters, etc.). You should use the information in these documents as well to identify any other content that might be missing or could be reinforced.
+
 You MUST return ONLY valid JSON with this exact shape:
 {
   "missing_keywords": ["keyword1", "keyword2", ...],
@@ -63,7 +65,9 @@ ${jobDescriptionText}
 RESUME TEXT:
 ${resumeText}
 
-${supportingText ? `---\nSUPPORTING DOCUMENTS:\n${supportingText}` : ''}
+---
+SUPPORTING_DOCUMENTS_TEXT:
+${supportingText || ''}
 
 Respond with ONLY the JSON object. Do not include any explanation, safety notes, classification labels, or text before or after the JSON.
 `;

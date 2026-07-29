@@ -8,6 +8,7 @@ export const Review: React.FC = () => {
   const { session } = useAuth();
   const {
     resumeText,
+    supportingText,
     analysisResult,
     tailoredSummary,
     setTailoredSummary,
@@ -15,6 +16,11 @@ export const Review: React.FC = () => {
     setTailoredSkills,
     tailoredExperience,
     setTailoredExperience,
+    setTailoredEducation,
+    setTailoredCertifications,
+    setTailoredAwards,
+    supportingDocAdds,
+    setSupportingDocAdds,
   } = useOutletContext<AppContextType>();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -54,18 +60,30 @@ export const Review: React.FC = () => {
 You are an expert ATS Resume Writer, Career Coach, and Resume Optimization Specialist.
 Your task is to optimize and tailor the Professional Summary, Skills, and Experience sections of the candidate's resume to match the target job description based on the provided ATS Gap Analysis, while preserving the resume's internal structure and details.
 
+You will also receive SUPPORTING_DOCUMENTS_TEXT containing additional documents the candidate has uploaded (certificates, transcripts, award letters, etc.). Extract all relevant information from these documents and merge them into the correct sections of the tailored resume:
+- Certificates and credentials → Certifications section
+- Academic transcripts or results → Education section
+- Awards or recognition letters → Awards & Achievements section
+- Skills or competencies mentioned → Technical or Soft Skills section
+- Work experience references → Professional Experience section
+Only include information that is clearly supported by the document text. Do not invent or infer qualifications not explicitly stated in the supporting documents.
+
 ATS GAP ANALYSIS:
 ${JSON.stringify(analysisResult)}
 
 ORIGINAL RESUME TEXT:
 ${resumeText}
 
+SUPPORTING_DOCUMENTS_TEXT:
+${supportingText || ''}
+
 ## PRIMARY RULES
 1. Your responsibility is NOT to rewrite the resume from scratch, but to optimize the contents of the Professional Summary, Skills, and Experience sections.
 2. Optimize only the content inside each of these sections to better match the target job description.
 3. Natural keyword optimization: Naturally inject the missing keywords/skills from the Gap Analysis where truthful and relevant.
-4. You may rephrase or reframe skills already present in the resume using terminology from the job description. You may NOT add any specific tool, technology, platform, or skill name that does not already appear, in some form, in the original resume — even if it appears in the missing_keywords or missing_skills list. The missing_skills list is informational only, showing what the role wants, not a list of things to claim the candidate has.
-5. Keep the content ATS-friendly.
+4. You may rephrase or reframe skills already present in the resume using terminology from the job description. You may NOT add any specific tool, technology, platform, or skill name that does not already appear, in some form, in the original resume or supporting documents — even if it appears in the missing_keywords or missing_skills list. The missing_skills list is informational only, showing what the role wants, not a list of things to claim the candidate has.
+5. Merge relevant information from the supporting documents into the Certifications, Education, Awards & Achievements, Technical or Soft Skills, and Professional Experience sections. Only include information supported by the document text.
+6. Keep the content ATS-friendly.
 
 ## STRUCTURE LOCK
 - You must preserve the structure of the Professional Summary, Skills, and Experience sections.
@@ -77,7 +95,13 @@ Return ONLY valid JSON with this exact shape:
 {
   "summary": "Rewritten professional summary text...",
   "skills": "Optimized skills list, separated by commas or newlines...",
-  "experience": "Optimized work experience sections and bullet points..."
+  "experience": "Optimized work experience sections and bullet points...",
+  "education": "Merged Education section content if modified/added from supporting documents, otherwise empty string",
+  "certifications": "Merged Certifications section content if modified/added from supporting documents, otherwise empty string",
+  "awards": "Merged Awards & Achievements section content if modified/added from supporting documents, otherwise empty string",
+  "supporting_doc_adds": [
+    "Brief description of what was detected in supporting documents and where it was placed (e.g., 'Added AWS Certified Solutions Architect to Certifications', 'Added Dean's List to Education')"
+  ]
 }
 
 Ensure your response contains ONLY the JSON payload. Do NOT wrap it in markdown code fences, do not add trailing explanations, and do not add any text before or after the JSON.
@@ -124,6 +148,7 @@ Ensure your response contains ONLY the JSON payload. Do NOT wrap it in markdown 
 
       // 1. Hard validation step to prevent fabricated skills
       const originalTextLower = resumeText.toLowerCase();
+      const supportingTextLower = (supportingText || '').toLowerCase();
       let cleanSkills = parsedResult.skills;
       const removedTerms: string[] = [];
       const verifiedTerms: string[] = [];
@@ -134,7 +159,7 @@ Ensure your response contains ONLY the JSON payload. Do NOT wrap it in markdown 
         ...(analysisResult.missing_skills || [])
       ]));
 
-      // Function to check if a technical skill is supported by the original resume
+      // Function to check if a technical skill is supported by the original resume or supporting documents
       const isSkillSupported = (skill: string): boolean => {
         const sLower = skill.toLowerCase().trim();
         if (!sLower) return true;
@@ -146,17 +171,17 @@ Ensure your response contains ONLY the JSON payload. Do NOT wrap it in markdown 
         if (!cleanSkillName) return true;
 
         // Direct inclusion
-        if (originalTextLower.includes(cleanSkillName)) return true;
+        if (originalTextLower.includes(cleanSkillName) || supportingTextLower.includes(cleanSkillName)) return true;
 
-        // Check if all major words (length > 2) are in the original resume
+        // Check if all major words (length > 2) are in the original resume or supporting docs
         const words = cleanSkillName.split(/[\s\/]+/).filter(w => w.length > 2);
-        if (words.length > 0 && words.every(word => originalTextLower.includes(word))) {
+        if (words.length > 0 && words.every(word => originalTextLower.includes(word) || supportingTextLower.includes(word))) {
           return true;
         }
 
         // Common variations or abbreviations
-        if (cleanSkillName.includes('n8n') && originalTextLower.includes('n8n')) return true;
-        if (cleanSkillName.includes('generative ai') && originalTextLower.includes('generative ai')) return true;
+        if (cleanSkillName.includes('n8n') && (originalTextLower.includes('n8n') || supportingTextLower.includes('n8n'))) return true;
+        if (cleanSkillName.includes('generative ai') && (originalTextLower.includes('generative ai') || supportingTextLower.includes('generative ai'))) return true;
 
         return false;
       };
@@ -195,7 +220,7 @@ Ensure your response contains ONLY the JSON payload. Do NOT wrap it in markdown 
         for (const term of missingKeywordsList) {
           const termLower = term.toLowerCase().trim();
           if (sentenceLower.includes(termLower)) {
-            if (!originalTextLower.includes(termLower)) {
+            if (!originalTextLower.includes(termLower) && !supportingTextLower.includes(termLower)) {
               console.info(`removed unverified skill from summary: ${term}`);
               if (!removedTerms.includes(term)) removedTerms.push(term);
               return false; // drop sentence
@@ -216,6 +241,10 @@ Ensure your response contains ONLY the JSON payload. Do NOT wrap it in markdown 
       setTailoredSummary(cleanSummary);
       setTailoredSkills(cleanSkills);
       setTailoredExperience(parsedResult.experience);
+      setTailoredEducation(parsedResult.education || '');
+      setTailoredCertifications(parsedResult.certifications || '');
+      setTailoredAwards(parsedResult.awards || '');
+      setSupportingDocAdds(parsedResult.supporting_doc_adds || []);
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || 'Failed to complete resume tailoring. Please try again.');
@@ -358,6 +387,18 @@ Ensure your response contains ONLY the JSON payload. Do NOT wrap it in markdown 
           />
         </div>
       </div>
+
+      {/* Supporting Documents Extraction Summary */}
+      {supportingDocAdds && supportingDocAdds.length > 0 && (
+        <div className="p-4 bg-green-50/50 border border-green-100 text-green-900 rounded-lg text-sm animate-fadeIn space-y-2">
+          <p className="font-semibold text-green-800">From your supporting documents, we added:</p>
+          <ul className="list-disc pl-5 text-xs text-green-700/95 space-y-1">
+            {supportingDocAdds.map((item, idx) => (
+              <li key={idx}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Action Footer */}
       <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row gap-4 sm:gap-0 justify-between items-center text-center sm:text-left">

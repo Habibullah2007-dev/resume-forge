@@ -98,6 +98,16 @@ function validateSchema(prompt, rawText) {
     const summary = transformString(obj.summary || obj.professional_summary || obj.professionalSummary);
     const skills = transformString(obj.skills || obj.skills_list || obj.skillsList);
     const experience = transformString(obj.experience || obj.work_experience || obj.workExperience);
+    
+    const education = transformString(obj.education);
+    const certifications = transformString(obj.certifications);
+    const awards = transformString(obj.awards);
+    
+    let supporting_doc_adds = [];
+    const rawAdds = obj.supporting_doc_adds || obj.supportingDocAdds;
+    if (Array.isArray(rawAdds)) {
+      supporting_doc_adds = rawAdds.map(String);
+    }
 
     if (!summary || !skills || !experience) {
       throw new Error('Missing expected fields for Tailor & Rewrite schema');
@@ -106,7 +116,11 @@ function validateSchema(prompt, rawText) {
     return {
       summary,
       skills,
-      experience
+      experience,
+      education,
+      certifications,
+      awards,
+      supporting_doc_adds
     };
   }
 

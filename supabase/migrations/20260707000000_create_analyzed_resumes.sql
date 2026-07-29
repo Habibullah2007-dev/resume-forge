@@ -4,13 +4,12 @@
 create table if not exists public.analyzed_resumes (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) on delete cascade not null default auth.uid(),
-  resume_name text not null,
-  job_description text not null,
-  resume_text text not null,
-  analysis_result jsonb not null,
-  tailored_summary text,
-  tailored_skills text,
-  tailored_experience text,
+  job_title text,
+  original_resume_text text not null,
+  job_description_text text not null,
+  gap_analysis jsonb not null,
+  tailored_resume_text text not null,
+  ats_check jsonb,
   created_at timestamptz default now() not null
 );
 

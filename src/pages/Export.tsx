@@ -20,8 +20,13 @@ export const Export: React.FC = () => {
     tailoredSummary,
     tailoredSkills,
     tailoredExperience,
+    tailoredEducation,
+    tailoredCertifications,
+    tailoredAwards,
+    supportingDocAdds,
     jobDescriptionText,
     analysisResult,
+    resetFlow,
   } = useOutletContext<AppContextType>();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -550,15 +555,15 @@ export const Export: React.FC = () => {
 
       // 3. Education
       const edu = extractSection(resumeText, ['EDUCATION', 'DEGREE', 'UNIVERSITY', 'COLLEGE']);
-      setEducation(edu);
+      setEducation(tailoredEducation || edu);
 
       // 4. Certifications
       const cert = extractSection(resumeText, ['CERTIFICATION', 'CERTIFICATE', 'COURSES', 'AWS']);
-      setCertifications(cert);
+      setCertifications(tailoredCertifications || cert);
 
       // 5. Awards & Achievements
       const aw = extractSection(resumeText, ['AWARDS', 'ACHIEVEMENTS', 'HONORS', 'RECOGNITION']);
-      setAwards(aw);
+      setAwards(tailoredAwards || aw);
 
       // 6. Leadership Experience
       const lead = extractSection(resumeText, ['LEADERSHIP', 'LEADERSHIP EXPERIENCE', 'EXTRA-CURRICULAR', 'EXTRACURRICULAR']);
@@ -592,7 +597,7 @@ export const Export: React.FC = () => {
       const refVal = extractSection(resumeText, ['REFERENCES', 'TESTIMONIALS']);
       setReferences(refVal);
     }
-  }, [resumeText, tailoredSkills]);
+  }, [resumeText, tailoredSkills, tailoredEducation, tailoredCertifications, tailoredAwards]);
 
   useEffect(() => {
     if (education) {
@@ -718,44 +723,64 @@ Respond with ONLY the JSON object. Do not include any explanation, safety notes,
     }
   }, [tailoredSummary, tailoredSkills, tailoredExperience]);
 
-  const [savedId, setSavedId] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    const saveToDb = async () => {
-      if (!session || !resumeText || savedId || isSaving) return;
-      setIsSaving(true);
-      try {
-        const { data, error } = await supabase
-          .from('analyzed_resumes')
-          .insert({
-            resume_name: headerInfo.name ? `${headerInfo.name}'s Resume` : 'Untitled Resume',
-            job_description: jobDescriptionText || '',
-            resume_text: resumeText,
-            analysis_result: analysisResult,
-            tailored_summary: tailoredSummary,
-            tailored_skills: tailoredSkills,
-            tailored_experience: tailoredExperience,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        if (data) {
-          setSavedId(data.id);
-          console.info('Automatically saved resume tailoring to database history.', data.id);
-        }
-      } catch (err) {
-        console.error('Failed to save resume tailoring to database history:', err);
-      } finally {
-        setIsSaving(false);
-      }
-    };
-
-    if (tailoredSummary && tailoredSkills && tailoredExperience && analysisResult) {
-      saveToDb();
+  const [jobTitle, setJobTitle] = useState<string>(() => {
+    if (!jobDescriptionText) return '';
+    const firstLine = jobDescriptionText.split('\n')[0].trim();
+    let cleanLine = firstLine
+      .replace(/^[^a-zA-Z0-9]+/, '')
+      .replace(/[^a-zA-Z0-9]+$/, '')
+      .replace(/^(job\s*title|position|role)\s*:\s*/i, '')
+      .trim();
+    if (cleanLine.length > 100 || cleanLine.length === 0) {
+      return '';
     }
-  }, [session, resumeText, tailoredSummary, tailoredSkills, tailoredExperience, analysisResult, jobDescriptionText, savedId, isSaving]);
+    return cleanLine;
+  });
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const handleSaveToHistory = async () => {
+    if (!session) {
+      setSaveStatus('error');
+      setSaveError('You must be logged in to save to history.');
+      return;
+    }
+    setSaveStatus('saving');
+    setSaveError(null);
+
+    try {
+      const tailoredResumeText = JSON.stringify({
+        summary: tailoredSummary,
+        skills: tailoredSkills,
+        experience: tailoredExperience,
+        education: tailoredEducation,
+        certifications: tailoredCertifications,
+        awards: tailoredAwards,
+        supporting_doc_adds: supportingDocAdds
+      });
+
+      const record = {
+        user_id: session.user.id,
+        job_title: jobTitle,
+        original_resume_text: resumeText,
+        job_description_text: jobDescriptionText,
+        gap_analysis: analysisResult,
+        tailored_resume_text: tailoredResumeText,
+        ats_check: atsResult
+      };
+
+      const { error } = await supabase
+        .from('analyzed_resumes')
+        .insert(record);
+
+      if (error) throw error;
+      setSaveStatus('success');
+    } catch (err: any) {
+      console.error('Failed to save to history:', err);
+      setSaveStatus('error');
+      setSaveError(err.message || 'Network error');
+    }
+  };
 
   // Protect route
   if (!tailoredSummary && !tailoredSkills && !tailoredExperience) {
@@ -1659,6 +1684,81 @@ Respond with ONLY the JSON object. Do not include any explanation, safety notes,
             Download as DOCX
           </button>
         </div>
+      </div>
+
+      {/* Save to History Section */}
+      <div className="mt-8 border-t border-gray-100 pt-8 space-y-6">
+        {saveStatus !== 'success' ? (
+          <>
+            <div className="space-y-2 text-left">
+              <label htmlFor="job-title-input" className="block text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Job Title
+              </label>
+              <input
+                id="job-title-input"
+                type="text"
+                placeholder="Enter job title (e.g. Senior React Developer)"
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-brand transition-colors duration-200 text-black bg-white"
+              />
+            </div>
+
+            {saveStatus === 'error' && (
+              <div className="p-4 bg-red-50 border-l-2 border-red-600 text-red-800 text-xs rounded-r flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-left">
+                <span>Could not save to history — please try again {saveError ? ` (${saveError})` : ''}</span>
+                <button
+                  onClick={handleSaveToHistory}
+                  className="bg-red-600 text-white px-3 py-1 rounded text-xs font-semibold hover:bg-red-700 transition-colors duration-200 cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            <div className="text-center space-y-2">
+              <button
+                onClick={handleSaveToHistory}
+                disabled={saveStatus === 'saving'}
+                className="bg-brand text-white px-8 py-3 rounded font-semibold text-sm hover:bg-brand-light transition-all duration-200 shadow-subtle w-full sm:w-auto cursor-pointer inline-flex items-center justify-center min-w-[200px]"
+              >
+                {saveStatus === 'saving' ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  '✓ Done — Save to History'
+                )}
+              </button>
+              <p className="text-xs text-gray-400">Mark this tailoring as complete and save it to your account</p>
+            </div>
+          </>
+        ) : (
+          <div className="text-center p-6 bg-green-50/50 border border-green-100 rounded-lg space-y-4 animate-fadeIn">
+            <p className="text-green-800 font-semibold text-lg flex items-center justify-center gap-1.5">
+              Saved to your history ✓
+            </p>
+            <div className="flex justify-center space-x-6 text-sm">
+              <button
+                onClick={resetFlow}
+                className="text-brand hover:text-brand-light font-semibold underline underline-offset-4 cursor-pointer"
+              >
+                Start a New Tailoring
+              </button>
+              <span className="text-gray-300">|</span>
+              <button
+                onClick={() => navigate('/history')}
+                className="text-brand hover:text-brand-light font-semibold underline underline-offset-4 cursor-pointer"
+              >
+                View My History
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
