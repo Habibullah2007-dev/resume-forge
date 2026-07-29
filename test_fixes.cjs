@@ -219,7 +219,23 @@ const { chromium } = require('playwright');
     throw new Error('Supporting documents summary banner was not displayed on Review screen');
   }
 
-  // Click "Check ATS Formatting"
+  // Check the Job Title input field is pre-populated on Review screen
+  const jobTitleVal = await page.locator('input#job-title-input').inputValue();
+  console.log('Prefilled Job Title input value on Review:', jobTitleVal);
+  if (jobTitleVal !== 'Lead React Architect') {
+    throw new Error(`Expected prefilled job title "Lead React Architect" on Review, got "${jobTitleVal}"`);
+  }
+
+  // Click Save to History on Review screen
+  console.log('Clicking Done — Save to History...');
+  await page.locator('button:has-text("Done — Save to History")').click();
+
+  // Wait for success confirmation
+  console.log('Waiting for success confirmation...');
+  await page.waitForSelector('text=Saved to your history ✓');
+  console.log('Confirmation message visible!');
+
+  // Click "Check ATS Formatting" to navigate to /export
   console.log('Clicking Check ATS Formatting...');
   await page.locator('button:has-text("Check ATS Formatting")').click();
   
@@ -237,25 +253,9 @@ const { chromium } = require('playwright');
     throw new Error('Certifications section did not contain AWS Certified Solutions Architect in resume preview');
   }
 
-  // Check the Job Title input field is pre-populated
-  const jobTitleVal = await page.locator('input#job-title-input').inputValue();
-  console.log('Prefilled Job Title input value:', jobTitleVal);
-  if (jobTitleVal !== 'Lead React Architect') {
-    throw new Error(`Expected prefilled job title "Lead React Architect", got "${jobTitleVal}"`);
-  }
-
-  // Click Save to History
-  console.log('Clicking Done — Save to History...');
-  await page.locator('button:has-text("Done — Save to History")').click();
-
-  // Wait for success confirmation
-  console.log('Waiting for success confirmation...');
-  await page.waitForSelector('text=Saved to your history ✓');
-  console.log('Confirmation message visible!');
-
-  // Navigate to history using link
-  console.log('Clicking View My History...');
-  await page.locator('button:has-text("View My History")').click();
+  // Navigate to history using header link since we are on /export
+  console.log('Clicking History in header...');
+  await page.locator('header button:has-text("History")').click();
   await page.waitForURL('**/history');
   console.log('Successfully navigated to /history');
 
